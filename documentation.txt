@@ -1,0 +1,111 @@
+The project provisions a PostgreSQL database on AWS RDS, a Lambda-based API, and connects them via API Gateway.
+The project is structured with interrelated .tf files and uses Bitbucket Pipelines for CI/CD.
+
+
+File Overview with their respective dependency
+
+1. provider.tf
+
+Initializes required providers and configures AWS region.
+
+Defines AWS and Random providers.
+
+Uses the aws_region variable.
+
+2. variables.tf
+
+Declares configuration variables used across all Terraform modules.
+
+Includes VPC and subnet CIDRs, DB name, and AWS region.
+
+These variables are referenced in almost every file.
+
+3. terraform.tfvars
+
+Supplies actual values for declared variables.
+
+Overrides default values in variables.tf.
+
+4. vpc.tf
+
+Sets up core networking infrastructure.
+
+Provisions VPC and private subnet.
+
+Creates an RDS subnet group for the DB instance.
+
+Related files:
+
+rds.tf (uses the subnet group created here)
+
+5. rds.tf
+
+Provisions the PostgreSQL RDS instance.
+
+Uses the subnet group from vpc.tf.
+
+Uses DB name from variables.tf.
+
+Creates a Security Group allowing internal access (port 5432).
+
+Uses password from random.tf.
+
+Highlights:
+
+Includes a null_resource to initialize DB via psql.
+
+Stores password in AWS SSM for secure access.
+
+6. random.tf
+
+Generates a strong random password for the RDS database.
+
+Referenced in rds.tf for DB creation.
+
+Value is saved in SSM (aws_ssm_parameter).
+
+7. lambda.tf
+
+Deploys the Lambda function for the messages API.
+
+Uses zipped code from the backend directory.
+
+References the RDS endpoint and credentials.
+
+Attaches IAM roles/policies to allow DB connection.
+
+Related files:
+
+rds.tf (for DB credentials and endpoint)
+
+random.tf (for DB password)
+
+8. api-gateway.tf
+
+Sets up API Gateway to expose the Lambda function.
+
+Defines resources for /messages/{messageId}.
+
+Integrates with the Lambda from lambda.tf.
+
+Outputs:
+
+Final API URL is exported for testing/usage.
+
+9. outputs.tf
+
+Outputs essential values post-deployment.
+
+Exports the RDS endpoint.
+
+Exports API Gateway URL for the Lambda.
+
+10. bitbucket-pipelines.yml
+
+CI/CD pipeline to automate deployment.
+
+Installs Terraform and Node.js.
+
+Builds and zips Lambda code using Webpack.
+
+Runs terraform init, plan, and validate.
