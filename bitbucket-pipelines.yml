@@ -1,0 +1,57 @@
+image: atlassian/default-image:latest
+
+pipelines:
+  default:
+    - parallel:
+        - step: &terraform-setup
+            name: Setup Terraform
+            script:
+              - wget -q https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_linux_amd64.zip
+              - unzip -q terraform_1.3.7_linux_amd64.zip
+              - chmod +x terraform && mv terraform /usr/local/bin/
+              - terraform version
+            caches:
+              - terraform
+
+        - step: &node-setup
+            name: Setup Node.js
+            script:
+              - curl -sL https://deb.nodesource.com/setup_16.x | bash -
+              - apt-get install -y nodejs
+              - npm install -g webpack
+              - node -v && npm -v
+            caches:
+              - node
+
+    - step:
+        name: Build Lambda
+        script:
+          - cd terraform/backend
+          - npm ci --quiet
+          - npx webpack 
+          - zip -q -j message-api.zip dist/index.js
+        artifacts:
+          - terraform/backend/message-api.zip            
+
+    - step:
+        name: Terraform Init
+        script:
+          - terraform init
+
+    - step:
+        name: Format & Validate
+        script:
+          - terraform fmt -recursive
+          - terraform validate
+
+    - step:
+        name: Terraform Plan
+        script:
+          - terraform plan -var-file='terraform.tfvars' -input=false -out=tfplan
+        artifacts:
+          - tfplan
+
+definitions:
+  caches:
+    terraform: /usr/local/bin/terraform
+    node: /usr/lib/node_modules
