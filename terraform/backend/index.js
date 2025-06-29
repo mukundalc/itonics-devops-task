@@ -20,7 +20,7 @@ exports.handler = async (event) => {
       console.log('event is', JSON.stringify(event, null, 2));
     }
 
-    messageId = event.messageId;
+    messageId = event.pathParameters?.messageId;
 
     if (DEBUG) {
       console.log('messageId', messageId);
